@@ -1,0 +1,19 @@
+raw_status,clean_status
+pending|pending_alt,pending
+pending,pending
+pen#ing,pending
+pxnding,pending
+deliveryd,success
+delyvered,success
+del1vered,success
+delivered,success
+delivered|delivered_alt,success
+shipped,pending
+shipped|shipped_alt,pending
+cancelled,failed
+cancelled|cancelled_alt,failed
+None,failed
+success,success
+not delivered,failed
+in-transit,pending
+in transit,pending

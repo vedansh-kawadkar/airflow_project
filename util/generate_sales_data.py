@@ -126,15 +126,32 @@ class MessyEcommerceGenerator:
         self.customers = {}
         customer_num = 1
         
+        def generate_phone_num():
+            area = random.randint(200, 999)
+            exchange = random.randint(200, 999)
+            number = random.randint(1000, 9999)
+            formats = [
+                f"({area}) {exchange}-{number}",
+                f"{area}-{exchange}-{number}",
+                f"{area}.{exchange}.{number}",
+                f"+1{area}{exchange}{number}",
+                f"{area}{exchange}{number}"
+            ]
+            
+            return random.choice(formats)
+        
         for first_name in first_names:
             for last_name in last_names:
-                customer_id = f"CUST_{customer_num:04d}"
+                customer_id = uuid.uuid4()
                 full_name = f"{first_name} {last_name}"
                 self.customers[customer_id] = {
                     'full_name': full_name,
                     'first_name': first_name,
                     'last_name': last_name,
-                    'email': f"{first_name.lower()}.{last_name.lower()}@gmail.com"
+                    'email': f"{first_name.lower()}.{last_name.lower()}@gmail.com",
+                    'phone': generate_phone_num(),
+                    'age' : random.randint(18, 80),
+                    "gender": random.choice(['M', 'F', 'Other'])
                 }
                 customer_num += 1
         
@@ -335,7 +352,7 @@ class MessyEcommerceGenerator:
         
         elif 'age' in column_name:
             if random.random() < 0.15:
-                return random.choice([-5, 150, 999, '25 years old', 'unknown'])  # Invalid ages
+                return random.choice([-5, 150, 999, '25 years old', None])  # Invalid ages
         
         elif 'quantity' in column_name:
             if random.random() < 0.08:
@@ -451,28 +468,31 @@ class MessyEcommerceGenerator:
         # print(f"######### selected_customers ########: \n {self.customers}")
         
         batch_data['customer_id'] = [cid for cid in selected_customers]
-        batch_data['customer_email'] = [self.introduce_messiness(self.customers[cid]['email'], 'customer_email', 0.12) for cid in selected_customers]
+        batch_data['customer_email'] = [self.customers[cid]['email'] for cid in selected_customers]
         batch_data['customer_first_name'] = [self.customers[cid]['first_name']for cid in selected_customers]
         batch_data['customer_last_name'] = [self.customers[cid]['last_name']for cid in selected_customers]
         
         # Generate phone numbers with various formats
-        phone_numbers = []
-        for _ in range(batch_size):
-            area = random.randint(200, 999)
-            exchange = random.randint(200, 999)
-            number = random.randint(1000, 9999)
-            formats = [
-                f"({area}) {exchange}-{number}",
-                f"{area}-{exchange}-{number}",
-                f"{area}.{exchange}.{number}",
-                f"+1{area}{exchange}{number}",
-                f"{area}{exchange}{number}"
-            ]
-            phone_numbers.append(random.choice(formats))
+        # phone_numbers = []
+        # for _ in range(batch_size):
+        #     area = random.randint(200, 999)
+        #     exchange = random.randint(200, 999)
+        #     number = random.randint(1000, 9999)
+        #     formats = [
+        #         f"({area}) {exchange}-{number}",
+        #         f"{area}-{exchange}-{number}",
+        #         f"{area}.{exchange}.{number}",
+        #         f"+1{area}{exchange}{number}",
+        #         f"{area}{exchange}{number}"
+        #     ]
+        #     phone_numbers.append(random.choice(formats))
         
-        batch_data['customer_phone'] = phone_numbers
-        batch_data['customer_age'] = [self.introduce_messiness(random.randint(18, 80), 'customer_age', 0.12) for _ in range(batch_size)]
-        batch_data['customer_gender'] = [self.introduce_messiness(random.choice(self.genders), 'customer_gender', 0.08) for _ in range(batch_size)]
+        def generate_age():
+            return random.randint(18, 80)
+        
+        batch_data['customer_phone'] = [self.customers[cid]['phone'] for cid in selected_customers]
+        batch_data['customer_age'] = [self.introduce_messiness(self.customers[cid]['age'], 'customer_age', 0.12) for cid in selected_customers]
+        batch_data['customer_gender'] = [self.introduce_messiness(self.customers[cid]['gender'], 'customer_gender', 0.08) for cid in selected_customers]
         
         # Registration dates (before order dates)
         reg_dates = []
@@ -503,13 +523,13 @@ class MessyEcommerceGenerator:
             product_id = random.choice(list(self.products.keys()))
             selected_products.append(product_id)
         
-        batch_data['product_id'] = [self.introduce_messiness(pid, 'product_id', 0.03) for pid in selected_products]
-        batch_data['product_name'] = [self.introduce_messiness(self.products[pid]['name'], 'product_name', 0.08) for pid in selected_products]
-        batch_data['product_category'] = [self.introduce_messiness(self.products[pid]['category'], 'product_category', 0.05) for pid in selected_products]
-        batch_data['product_subcategory'] = [self.introduce_messiness(self.products[pid]['subcategory'], 'product_subcategory', 0.06) for pid in selected_products]
-        batch_data['product_brand'] = [self.introduce_messiness(self.products[pid]['brand'], 'product_brand', 0.04) for pid in selected_products]
-        batch_data['product_cost'] = [self.introduce_messiness(self.products[pid]['cost'], 'product_cost', 0.08) for pid in selected_products]
-        batch_data['product_list_price'] = [self.introduce_messiness(self.products[pid]['list_price'], 'product_list_price', 0.06) for pid in selected_products]
+        batch_data['product_id'] = selected_products
+        batch_data['product_name'] = [self.products[pid]['name'] for pid in selected_products]
+        batch_data['product_category'] = [self.products[pid]['category'] for pid in selected_products]
+        batch_data['product_subcategory'] = [self.products[pid]['subcategory'] for pid in selected_products]
+        batch_data['product_brand'] = [self.products[pid]['brand'] for pid in selected_products]
+        batch_data['product_cost'] = [self.products[pid]['cost'] for pid in selected_products]
+        batch_data['product_list_price'] = [self.products[pid]['list_price'] for pid in selected_products]
         
         # Warehouses (4 columns)
         selected_warehouses = []
@@ -527,39 +547,26 @@ class MessyEcommerceGenerator:
             
             selected_warehouses.append(warehouse_id)
         
-        batch_data['warehouse_id'] = [self.introduce_messiness(wid, 'warehouse_id', 0.03) for wid in selected_warehouses]
-        batch_data['warehouse_city'] = [self.introduce_messiness(self.warehouses[wid]['city'], 'warehouse_city', 0.04) for wid in selected_warehouses]
-        batch_data['warehouse_state'] = [self.introduce_messiness(self.warehouses[wid]['state'], 'warehouse_state', 0.03) for wid in selected_warehouses]
-        batch_data['warehouse_country'] = [self.introduce_messiness(self.warehouses[wid]['country'], 'warehouse_country', 0.02) for wid in selected_warehouses]
+        batch_data['warehouse_id'] = selected_warehouses
+        batch_data['warehouse_city'] = [self.warehouses[wid]['city'] for wid in selected_warehouses]
+        batch_data['warehouse_state'] = [self.warehouses[wid]['state'] for wid in selected_warehouses]
+        batch_data['warehouse_country'] = [self.warehouses[wid]['country'] for wid in selected_warehouses]
         
         # Transaction Details (8 columns)
         quantities = []
-        unit_prices = []
         line_totals = []
         
         for i in range(batch_size):
             qty = random.randint(1, 10)
-            # Use product list price as base, but add some variation
-            base_price = self.products[selected_products[i]]['list_price']
-            unit_price = round(base_price * random.uniform(0.8, 1.2), 2)  # ±20% price variation
-            
-            # Calculate line total with some business logic errors
-            if random.random() < 0.10:  # 10% calculation errors
-                line_total = round(qty * unit_price * random.uniform(0.7, 1.4), 2)  # Wrong calculation
-            else:
-                line_total = round(qty * unit_price, 2)  # Correct calculation
             
             quantities.append(qty)
-            unit_prices.append(unit_price)
-            line_totals.append(line_total)
         
-        batch_data['quantity_ordered'] = [self.introduce_messiness(qty, 'quantity_ordered', 0.08) for qty in quantities]
-        batch_data['unit_price'] = [self.introduce_messiness(price, 'unit_price', 0.06) for price in unit_prices]
-        batch_data['line_total'] = [self.introduce_messiness(total, 'line_total', 0.05) for total in line_totals]
+        batch_data['quantity_ordered'] = [qty for qty in quantities]
+        # batch_data['line_total'] = [self.introduce_messiness(total, 'line_total', 0.05) for total in line_totals]
         
-        batch_data['discount_amount'] = [self.introduce_messiness(round(random.uniform(0, 50), 2), 'discount_amount', 0.40) for _ in range(batch_size)]  # Many nulls
-        batch_data['discount_percent'] = [self.introduce_messiness(round(random.uniform(0, 25), 1), 'discount_percent', 0.45) for _ in range(batch_size)]  # Many nulls
-        batch_data['coupon_code'] = [self.introduce_messiness(f"SAVE{random.randint(5,50)}", 'coupon_code', 0.70) for _ in range(batch_size)]  # Mostly null
+        # batch_data['discount_amount'] = [self.introduce_messiness(round(random.uniform(0, 50), 2), 'discount_amount', 0.40) for _ in range(batch_size)]  # Many nulls
+        # batch_data['discount_percent'] = [self.introduce_messiness(round(random.uniform(0, 25), 1), 'discount_percent', 0.45) for _ in range(batch_size)]  # Many nulls
+        # batch_data['coupon_code'] = [self.introduce_messiness(f"SAVE{random.randint(5,50)}", 'coupon_code', 0.70) for _ in range(batch_size)]  # Mostly null
         batch_data['payment_method'] = [self.introduce_messiness(random.choice(self.payment_methods), 'payment_method', 0.05) for _ in range(batch_size)]
         batch_data['payment_status'] = [self.introduce_messiness(ps, 'payment_status', 0.04) for ps in payment_statuses]
         
@@ -593,13 +600,12 @@ class MessyEcommerceGenerator:
             
             # Generate correct ZIP for city/state, then make it messy
             correct_zip = self.get_zip_for_city_state(ship_city, ship_state)
-            messy_zip = self.create_messy_zip(correct_zip, ship_city, ship_state)
-            shipping_zips.append(messy_zip)
+            shipping_zips.append(correct_zip)
         
-        batch_data['shipping_address_line1'] = [self.introduce_messiness(addr, 'shipping_address_line1', 0.08) for addr in shipping_addresses]
+        batch_data['shipping_address_line1'] = shipping_addresses
         batch_data['shipping_address_line2'] = [self.introduce_messiness(f"Apt {random.randint(1,999)}", 'shipping_address_line2', 0.65) for _ in range(batch_size)]  # Mostly null
-        batch_data['shipping_city'] = [self.introduce_messiness(city, 'shipping_city', 0.06) for city in shipping_cities]
-        batch_data['shipping_state'] = [self.introduce_messiness(state, 'shipping_state', 0.04) for state in shipping_states]
+        batch_data['shipping_city'] = [city for city in shipping_cities]
+        batch_data['shipping_state'] = [state for state in shipping_states]
         batch_data['shipping_zip'] = shipping_zips  # Already messy from create_messy_zip
         batch_data['shipping_country'] = [self.introduce_messiness('US', 'shipping_country', 0.03) for _ in range(batch_size)]
         batch_data['shipping_method'] = [self.introduce_messiness(random.choice(self.shipping_methods), 'shipping_method', 0.05) for _ in range(batch_size)]
